@@ -1,3 +1,4 @@
+import type { Ref } from 'vue'
 import type { BlockState } from '~/types'
 
 // 方向
@@ -12,25 +13,39 @@ const diorections = [
   [0, 1],
 ]
 
-export class GamePlay {
-  state = ref<BlockState[][]>([])
-  mineGenerated = false
+interface GameState {
+  board: BlockState[][]
+  mineGenerated: boolean
+  gameState: 'play' | 'won' | 'lost'
+}
 
-  constructor(public width: number, public height: number) {
+export class GamePlay {
+  state = ref() as Ref<GameState>
+
+  constructor(
+    public width: number, public height: number,
+  ) {
     this.reset()
+  }
+
+  get board() {
+    return this.state.value.board
   }
 
   // 重置游戏
   reset() {
-    this.mineGenerated = false
-    this.state.value = Array.from({ length: this.height },
-      (_, y) =>
-        Array.from({ length: this.width },
-          (_, x): BlockState => ({
-            x, y, revealed: false, adjacentMines: 0,
-          }),
-        ),
-    )
+    this.state.value = {
+      mineGenerated: false,
+      gameState: 'play',
+      board: Array.from({ length: this.height },
+        (_, y) =>
+          Array.from({ length: this.width },
+            (_, x): BlockState => ({
+              x, y, revealed: false, adjacentMines: 0,
+            }),
+          ),
+      ),
+    }
   }
 
   // 生成炸弹
@@ -53,7 +68,7 @@ export class GamePlay {
 
   // 计算各自周边的炸弹数量
   updateNubers() {
-    this.state.value.forEach((row) => {
+    this.board.forEach((row) => {
       row.forEach((block) => {
         // 如果是炸弹则跳过
         if (block.mine)
@@ -86,6 +101,10 @@ export class GamePlay {
 
   // 右键标记
   onRightClick(block: BlockState) {
+    // 如果游戏结束则不操作
+    if (this.state.value.gameState !== 'play')
+      return
+
     // 如果已经被翻开则无法标记
     if (block.revealed)
       return
@@ -96,16 +115,24 @@ export class GamePlay {
 
   // 点击翻开
   onClick(block: BlockState) {
+    // 如果游戏结束则不操作
+    if (this.state.value.gameState !== 'play')
+      return
+
     // 初始炸弹未生产，翻开第一张时才生成
-    if (!this.mineGenerated) {
-      this.generateMines(this.state.value, block)
-      this.mineGenerated = true
+    if (!this.state.value.mineGenerated) {
+      this.generateMines(this.board, block)
+      this.state.value.mineGenerated = true
     }
     // 翻牌
     block.revealed = true
-    // 如果点到炸弹
-    if (block.mine)
-      alert('BOOM!')
+    // 如果点到炸弹，则游戏结束，并翻开所有牌
+    if (block.mine) {
+      this.state.value.gameState = 'lost'
+      this.showAllMines()
+      return
+    }
+
     // 判断该块是否为0
     this.expendZero(block)
     // 判断是否游戏结束
@@ -122,9 +149,17 @@ export class GamePlay {
       if (x2 < 0 || x2 >= this.width || y2 < 0 || y2 >= this.height)
         return undefined
       // 不超出边界的剩余周边返回当前项
-      return this.state.value[y2][x2]
+      return this.board[y2][x2]
     })
       .filter(Boolean) as BlockState[]
+  }
+
+  // 显示所有炸弹（翻到雷的时候）
+  showAllMines() {
+    this.board.flat().forEach((i) => {
+      if (i.mine)
+        i.revealed = true
+    })
   }
 
   // 游戏状态
@@ -135,16 +170,18 @@ export class GamePlay {
   // 如果没有满足条件的元素，则返回false。
   checkGameState() {
     // 初次点击不进行判断，不管输赢
-    if (!this.mineGenerated)
+    if (!this.state.value.mineGenerated)
       return
-    const blocks = this.state.value.flat()
+    const blocks = this.board.flat()
 
     // 如果所有的块被翻开或者被标记
     if (blocks.every(block => block.revealed || block.flagged)) {
-      // 如果某一块被标记但是不是炸弹，则显示 作弊（漏洞，可以优化）
-      if (blocks.some(block => block.flagged && !block.mine))
-        alert('You cheat!')
-      else alert('You win!')
+      // 如果某一块被标记但是不是炸弹，则失败，并翻开所有牌
+      if (blocks.some(block => block.flagged && !block.mine)) {
+        this.state.value.gameState = 'lost'
+        this.showAllMines()
+      }
+      else { this.state.value.gameState = 'won' }
     }
   }
 }

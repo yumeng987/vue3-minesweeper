@@ -3,12 +3,15 @@ import { isDev, toggleDev } from '~/composables'
 import { GamePlay } from '~/composables/logic'
 
 const play = new GamePlay(10, 10)
-const state = play.state
+// 持续化（刷新不重置）
+// vueuse里面的一个工具
+useStorage('vuesweeper-state', play.state)
+
+const state = computed(() => play.board)
 </script>
 
 <template>
   Minesweeper
-
   <div p5>
     <div>
       <div
