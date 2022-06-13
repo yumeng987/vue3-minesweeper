@@ -1,14 +1,5 @@
 <script setup lang="ts">
-// import type { BlockState } from '~/types'
-
-interface BlockState {
-  x: number
-  y: number
-  revealed: boolean
-  mine?: boolean
-  flagged?: boolean
-  adjacentMines: number
-}
+import type { BlockState } from '~/types'
 
 // 背景表格
 const WIDTH = 5
