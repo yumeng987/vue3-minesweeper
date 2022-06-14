@@ -41,7 +41,15 @@ export class GamePlay {
   }
 
   // 重置游戏
-  reset() {
+  reset(
+    width = this.width,
+    height = this.height,
+    mines = this.mines,
+  ) {
+    this.width = width
+    this.height = height
+    this.mines = mines
+
     this.state.value = {
       mineGenerated: false,
       gameState: 'play',
@@ -70,11 +78,9 @@ export class GamePlay {
     const placeRandom = () => {
       const x = this.randomInt(0, this.width - 1)
       const y = this.randomInt(0, this.height - 1)
-      const block = state[x][y]
+      const block = state[y][x]
       // 让第一个翻牌肯定不是炸弹
-      if (Math.abs(initial.x - block.x) < 1)
-        return false
-      if (Math.abs(initial.y - block.y) < 1)
+      if (Math.abs(initial.x - block.x) <= 1 && Math.abs(initial.y - block.y) <= 1)
         return false
       if (block.mine)
         return false
