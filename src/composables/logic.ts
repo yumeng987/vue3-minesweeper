@@ -24,13 +24,20 @@ export class GamePlay {
   state = ref() as Ref<GameState>
 
   constructor(
-    public width: number, public height: number,
+    public width: number,
+    public height: number,
+    // 炸弹总数
+    public mines: number,
   ) {
     this.reset()
   }
 
   get board() {
     return this.state.value.board
+  }
+
+  get blocks() {
+    return this.state.value.board.flat()
   }
 
   // 重置游戏
@@ -49,26 +56,44 @@ export class GamePlay {
     }
   }
 
+  random(min: number, max: number) {
+    return Math.random() * (max - min) + min
+  }
+
+  randomInt(min: number, max: number) {
+    return Math.round(this.random(min, max))
+  }
+
   // 生成炸弹
   generateMines(state: BlockState[][], initial: BlockState) {
-    for (const row of state) {
-      for (const block of row) {
-        // 让第一个翻牌肯定不是炸弹
-        if (Math.abs(initial.x - block.x) < 1)
-          continue
-
-        if (Math.abs(initial.y - block.y) < 1)
-          continue
-
-        block.mine = Math.random() < 0.1
-      }
+    // 随机放置（生成对应数量的炸弹坐标）
+    const placeRandom = () => {
+      const x = this.randomInt(0, this.width - 1)
+      const y = this.randomInt(0, this.height - 1)
+      const block = state[x][y]
+      // 让第一个翻牌肯定不是炸弹
+      if (Math.abs(initial.x - block.x) < 1)
+        return false
+      if (Math.abs(initial.y - block.y) < 1)
+        return false
+      if (block.mine)
+        return false
+      block.mine = true
+      return true
     }
+    // 根据炸弹总数 循环 随机放置函数
+    Array.from({ length: this.mines }, () => null)
+      .forEach(() => {
+        let placed = false
+        while (!placed)
+          placed = placeRandom()
+      })
     // 计算周边炸弹
-    this.updateNubers()
+    this.updateNumbers()
   }
 
   // 计算各自周边的炸弹数量
-  updateNubers() {
+  updateNumbers() {
     this.board.forEach((row) => {
       row.forEach((block) => {
         // 如果是炸弹则跳过
