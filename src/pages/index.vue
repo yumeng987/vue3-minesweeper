@@ -2,7 +2,7 @@
 import { isDev, toggleDev } from '~/composables'
 import { GamePlay } from '~/composables/logic'
 
-const play = new GamePlay(10, 10, 5)
+const play = new GamePlay(6, 6, 3)
 // 持续化（刷新不重置）
 // vueuse里面的一个工具
 useStorage('vuesweeper-state', play.state)
@@ -52,4 +52,6 @@ watchEffect(() => {
       REST
     </button>
   </div>
+
+  <Confetti :passed="play.state.value.gameState === 'won'" />
 </template>

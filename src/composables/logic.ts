@@ -210,7 +210,6 @@ export class GamePlay {
       }
       else {
         this.state.value.gameState = 'won'
-        alert('won')
       }
     }
   }
