@@ -2,7 +2,7 @@
 import { isDev, toggleDev } from '~/composables'
 import { GamePlay } from '~/composables/logic'
 
-const play = new GamePlay(5, 5, 2)
+const play = new GamePlay(10, 10, 5)
 // 持续化（刷新不重置）
 // vueuse里面的一个工具
 useStorage('vuesweeper-state', play.state)
@@ -21,13 +21,13 @@ watchEffect(() => {
 
 <template>
   Minesweeper
-  <div p5>
+  <div p5 w-full overflow-auto>
     <div>
       <div
         v-for="row, y in state"
         :key="y"
         flex="~"
-        items-center justify-center
+        items-center justify-center w-max ma
       >
         <MineBlock
           v-for="block, x in row"
