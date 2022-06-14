@@ -2,12 +2,17 @@
 import { isDev, toggleDev } from '~/composables'
 import { GamePlay } from '~/composables/logic'
 
-const play = new GamePlay(10, 10)
+const play = new GamePlay(5, 5)
 // 持续化（刷新不重置）
 // vueuse里面的一个工具
 useStorage('vuesweeper-state', play.state)
 
 const state = computed(() => play.board)
+
+// 监听依赖
+watchEffect(() => {
+  play.checkGameState()
+})
 </script>
 
 <template>
