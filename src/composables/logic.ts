@@ -208,9 +208,9 @@ export class GamePlay {
       return
     const blocks = this.board.flat()
 
-    // 如果所有的块被翻开或者被标记
-    if (blocks.every(block => block.revealed || block.flagged)) {
-      // 如果某一块被标记但是不是炸弹，则失败，并翻开所有牌
+    // 如果所有的块被翻开或者被标记或者是炸弹
+    if (blocks.every(block => block.revealed || block.flagged || block.mine)) {
+      // 如果某一块被标记但不是炸弹，则失败，并翻开所有牌
       if (blocks.some(block => block.flagged && !block.mine)) {
         this.state.value.gameState = 'lost'
         this.showAllMines()
@@ -219,6 +219,25 @@ export class GamePlay {
       else {
         this.state.value.gameState = 'won'
       }
+    }
+  }
+
+  // 双击翻开邻边（如果是炸弹则标记，不是炸弹则翻开）
+  autoExpand(block: BlockState) {
+    const siblings = this.getSiblings(block)
+    const flags = siblings.reduce((a, b) => a + (b.flagged ? 1 : 0), 0)
+    const notRevealed = siblings.reduce((a, b) => a + (!b.revealed && !b.flagged ? 1 : 0), 0)
+    if (flags === block.adjacentMines) {
+      siblings.forEach((i) => {
+        i.revealed = true
+      })
+    }
+    const missingFlags = block.adjacentMines - flags
+    if (notRevealed === missingFlags) {
+      siblings.forEach((i) => {
+        if (!i.revealed && !i.flagged)
+          i.flagged = true
+      })
     }
   }
 }
