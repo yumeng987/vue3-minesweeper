@@ -34,7 +34,7 @@ function getBlockClass(block: BlockState) {
     min-w-8
     min-h-8
     m="1px"
-    border="0.5 gray-400/5"
+    border="0.5 gray-400/50"
     flex="~"
     items-center justify-center
     :class="getBlockClass(block)"

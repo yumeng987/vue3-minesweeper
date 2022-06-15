@@ -2,19 +2,22 @@
 import { isDev, toggleDev } from '~/composables'
 import { GamePlay } from '~/composables/logic'
 
-const play = new GamePlay(6, 6, 3)
+const play = new GamePlay(9, 9, 5)
 
 // 计时（vueuse里面的一个工具）
-// const start = new Date()
-// const now = $(useNow())
-// const timerMS = $computed(() => Math.round((+now - +start) / 1000))
+const now = $(useNow())
+const timerMS = $computed(() => Math.round((+now - play.state.value.startMS) / 1000))
+
 // 持续化（刷新不重置）（vueuse里面的一个工具）
 useStorage('vuesweeper-state', play.state)
 
 const state = $computed(() => play.board)
 
-const mineCount = $computed(() => {
-  return play.blocks.reduce((a, b) => a + (b.mine ? 1 : 0), 0)
+// 炸弹剩余数量
+const mineRest = $computed(() => {
+  if (!play.state.value.mineGenerated)
+    return play.mines
+  return play.blocks.reduce((a, b) => a + (b.mine ? 1 : 0) - (b.flagged ? 1 : 0), 0)
 })
 
 // 选择难度
@@ -57,13 +60,14 @@ watchEffect(() => {
     </button>
   </div>
 
-  <div flex justify-center>
-    <!-- <div font-mono text-2xl flex="~ gap-1" items-center>
+  <div flex="~ gap-10" justify-center>
+    <div font-mono text-2xl flex="~ gap-1" items-center>
       <div i-carbon-timer />
       {{ timerMS }}
-    </div> -->
-    <div>
-      Count:{{ mineCount }}
+    </div>
+    <div font-mono text-2xl flex="~ gap-1" items-center>
+      <div i-mdi:mine />
+      {{ mineRest }}
     </div>
   </div>
 
