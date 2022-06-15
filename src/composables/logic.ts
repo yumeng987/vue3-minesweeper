@@ -1,4 +1,3 @@
-/* eslint-disable no-alert */
 import type { Ref } from 'vue'
 import type { BlockState } from '~/types'
 
@@ -13,12 +12,14 @@ const diorections = [
   [-1, 1],
   [0, 1],
 ]
+type GameStatus = 'play' | 'won' | 'lost'
 
 interface GameState {
   board: BlockState[][]
   mineGenerated: boolean
-  gameState: 'play' | 'won' | 'lost'
+  status: GameStatus
   startMS: number
+  endMS?: number
 }
 
 export class GamePlay {
@@ -54,7 +55,7 @@ export class GamePlay {
     this.state.value = {
       startMS: +Date.now(),
       mineGenerated: false,
-      gameState: 'play',
+      status: 'play',
       board: Array.from({ length: this.height },
         (_, y) =>
           Array.from({ length: this.width },
@@ -136,7 +137,7 @@ export class GamePlay {
   // 右键标记
   onRightClick(block: BlockState) {
     // 如果游戏结束则不操作
-    if (this.state.value.gameState !== 'play')
+    if (this.state.value.status !== 'play')
       return
 
     // 如果已经被翻开则无法标记
@@ -150,7 +151,7 @@ export class GamePlay {
   // 点击翻开
   onClick(block: BlockState) {
     // 如果游戏结束则不操作
-    if (this.state.value.gameState !== 'play')
+    if (this.state.value.status !== 'play')
       return
 
     // 初始炸弹未生产，翻开第一张时才生成
@@ -162,8 +163,7 @@ export class GamePlay {
     block.revealed = true
     // 如果点到炸弹，则游戏结束，并翻开所有牌
     if (block.mine) {
-      this.state.value.gameState = 'lost'
-      this.showAllMines()
+      this.onGameOver('lost')
       return
     }
 
@@ -174,7 +174,7 @@ export class GamePlay {
   }
 
   // 判断周边是否有炸弹
-  // .filter(Boolean) => 移除所有的"false"类型，将越界的取除
+  // .filter(Boolean) => 移除所有的"false"类型，将越界的去除
   getSiblings(block: BlockState) {
     return diorections.map(([dx, dy]) => {
       const x2 = block.x + dx
@@ -211,33 +211,45 @@ export class GamePlay {
     // 如果所有的块被翻开或者被标记或者是炸弹
     if (blocks.every(block => block.revealed || block.flagged || block.mine)) {
       // 如果某一块被标记但不是炸弹，则失败，并翻开所有牌
-      if (blocks.some(block => block.flagged && !block.mine)) {
-        this.state.value.gameState = 'lost'
-        this.showAllMines()
-        alert('lost')
-      }
-      else {
-        this.state.value.gameState = 'won'
-      }
+      if (blocks.some(block => block.flagged && !block.mine))
+        this.onGameOver('lost')
+      else
+        this.onGameOver('won')
     }
   }
 
-  // 双击翻开邻边（如果是炸弹则标记，不是炸弹则翻开）
+  // 双击翻开周边（如果是炸弹则标记，不是炸弹则翻开）
   autoExpand(block: BlockState) {
+    // 获取周边的所有块
     const siblings = this.getSiblings(block)
+    // 获取周边标记了的块
     const flags = siblings.reduce((a, b) => a + (b.flagged ? 1 : 0), 0)
+    // 获取周边没有翻开的块
     const notRevealed = siblings.reduce((a, b) => a + (!b.revealed && !b.flagged ? 1 : 0), 0)
+    // 如果标记的块和当前块周边炸弹数量相等，则翻开
     if (flags === block.adjacentMines) {
       siblings.forEach((i) => {
         i.revealed = true
+        if (i.mine)
+          this.onGameOver('lost')
       })
     }
+    // 获取块周边剩余的标记数
     const missingFlags = block.adjacentMines - flags
+    // 如果周边没有翻开的块和剩余的标记数相等，则标记
     if (notRevealed === missingFlags) {
       siblings.forEach((i) => {
         if (!i.revealed && !i.flagged)
           i.flagged = true
       })
     }
+  }
+
+  // 判断游戏是否结束
+  onGameOver(status: GameStatus) {
+    this.state.value.status = status
+    this.state.value.endMS = +Date.now()
+    if (status === 'lost')
+      this.showAllMines()
   }
 }

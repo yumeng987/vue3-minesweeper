@@ -6,7 +6,7 @@ const play = new GamePlay(9, 9, 5)
 
 // 计时（vueuse里面的一个工具）
 const now = $(useNow())
-const timerMS = $computed(() => Math.round((+now - play.state.value.startMS) / 1000))
+const timerMS = $computed(() => Math.round(((play.state.value.endMS || +now) - play.state.value.startMS) / 1000))
 
 // 持续化（刷新不重置）（vueuse里面的一个工具）
 useStorage('vuesweeper-state', play.state)
@@ -24,7 +24,7 @@ const mineRest = $computed(() => {
 function newGame(difficulty: 'easy' | 'medium' | 'hard') {
   switch (difficulty) {
     case 'easy':
-      play.reset(9, 9, 5)
+      play.reset(9, 9, 10)
       break
     case 'medium':
       play.reset(16, 16, 30)
@@ -97,5 +97,5 @@ watchEffect(() => {
     </button>
   </div>
 
-  <Confetti :passed="play.state.value.gameState === 'won'" />
+  <Confetti :passed="play.state.value.status === 'won'" />
 </template>
