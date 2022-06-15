@@ -12,13 +12,13 @@ const diorections = [
   [-1, 1],
   [0, 1],
 ]
-type GameStatus = 'play' | 'won' | 'lost'
+type GameStatus = 'ready' | 'play' | 'won' | 'lost'
 
 interface GameState {
   board: BlockState[][]
   mineGenerated: boolean
   status: GameStatus
-  startMS: number
+  startMS?: number
   endMS?: number
 }
 
@@ -53,9 +53,8 @@ export class GamePlay {
     this.mines = mines
 
     this.state.value = {
-      startMS: +Date.now(),
       mineGenerated: false,
-      status: 'play',
+      status: 'ready',
       board: Array.from({ length: this.height },
         (_, y) =>
           Array.from({ length: this.width },
@@ -124,9 +123,10 @@ export class GamePlay {
       return
     // 周边所有的0全翻开
     this.getSiblings(block).forEach((s) => {
-      // 如果没有被翻开则翻开并递归
+      // 如果没有被翻开并且不是标记则翻开并递归
       if (!s.revealed) {
-        s.revealed = true
+        if (!s.flagged)
+          s.revealed = true
         this.expendZero(s)
       }
     })
@@ -144,14 +144,17 @@ export class GamePlay {
     if (block.revealed)
       return
     block.flagged = !block.flagged
-    // 判断是否游戏结束
-    // this.checkGameState()
   }
 
   // 点击翻开
   onClick(block: BlockState) {
-    // 如果游戏结束则不操作
-    if (this.state.value.status !== 'play')
+    // 如果游戏是准备阶段，则变为进行阶段并开始计时
+    if (this.state.value.status === 'ready') {
+      this.state.value.status = 'play'
+      this.state.value.startMS = +new Date()
+    }
+    // 如果不是进行阶段或者当前块为标记，则不操作（游戏刚开始一定得先左键才能开始标记）
+    if (this.state.value.status !== 'play' || block.flagged)
       return
 
     // 初始炸弹未生产，翻开第一张时才生成
@@ -169,8 +172,6 @@ export class GamePlay {
 
     // 判断该块是否为0
     this.expendZero(block)
-    // 判断是否游戏结束
-    // checkGameState()
   }
 
   // 判断周边是否有炸弹
@@ -203,23 +204,32 @@ export class GamePlay {
   // 如果有一个元素满足条件，返回true , 剩余的元素不会再执行检测。
   // 如果没有满足条件的元素，则返回false。
   checkGameState() {
-    // 初次点击不进行判断，不管输赢
-    if (!this.state.value.mineGenerated)
+    // 如果是首次点击或者当前状态不是进行阶段，则不操作
+    if (!this.state.value.mineGenerated || this.state.value.status !== 'play')
       return
     const blocks = this.board.flat()
 
     // 如果所有的块被翻开或者被标记或者是炸弹
-    if (blocks.every(block => block.revealed || block.flagged || block.mine)) {
-      // 如果某一块被标记但不是炸弹，则失败，并翻开所有牌
-      if (blocks.some(block => block.flagged && !block.mine))
-        this.onGameOver('lost')
-      else
-        this.onGameOver('won')
-    }
+    // if (blocks.every(block => block.revealed || block.flagged || block.mine)) {
+    //   // 如果某一块被标记但不是炸弹，则失败，并翻开所有牌
+    //   if (blocks.some(block => block.flagged && !block.mine))
+    //     this.onGameOver('lost')
+    //   else
+    //     this.onGameOver('won')
+    // }
+    // }
+
+    // 如果
+    if (!blocks.some(block => !block.revealed && !block.mine))
+      this.onGameOver('won')
   }
 
   // 双击翻开周边（如果是炸弹则标记，不是炸弹则翻开）
   autoExpand(block: BlockState) {
+    // 如果当前状态不是进行阶段或者标记块，则不操作
+    if (this.state.value.status !== 'play' || block.flagged)
+      return
+
     // 获取周边的所有块
     const siblings = this.getSiblings(block)
     // 获取周边标记了的块
@@ -229,7 +239,13 @@ export class GamePlay {
     // 如果标记的块和当前块周边炸弹数量相等，则翻开
     if (flags === block.adjacentMines) {
       siblings.forEach((i) => {
+        // i.revealed = true
+        // if (!i.flagged && i.mine)
+        //   this.onGameOver('lost')
+        if (i.revealed || i.flagged)
+          return
         i.revealed = true
+        this.expendZero(i)
         if (i.mine)
           this.onGameOver('lost')
       })

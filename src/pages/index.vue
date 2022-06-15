@@ -6,7 +6,7 @@ const play = new GamePlay(9, 9, 5)
 
 // 计时（vueuse里面的一个工具）
 const now = $(useNow())
-const timerMS = $computed(() => Math.round(((play.state.value.endMS || +now) - play.state.value.startMS) / 1000))
+const timerMS = $computed(() => Math.round(((play.state.value.endMS ?? +now) - (play.state.value.startMS ?? +now)) / 1000))
 
 // 持续化（刷新不重置）（vueuse里面的一个工具）
 useStorage('vuesweeper-state', play.state)
@@ -17,7 +17,8 @@ const state = $computed(() => play.board)
 const mineRest = $computed(() => {
   if (!play.state.value.mineGenerated)
     return play.mines
-  return play.blocks.reduce((a, b) => a + (b.mine ? 1 : 0) - (b.flagged ? 1 : 0), 0)
+  // return play.blocks.reduce((a, b) => a + (b.mine ? 1 : 0) - (b.flagged ? 1 : 0), 0)
+  return play.blocks.reduce((a, b) => a - (b.flagged ? 1 : 0), play.mines)
 })
 
 // 选择难度
